@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.npm
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Foundry
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# Misc
+.DS_Store
+*.log
