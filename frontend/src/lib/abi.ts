@@ -200,4 +200,22 @@ export const USDC_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "uint8" }],
   },
+
+{
+    name: "subscriptions",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "subId", type: "uint256" }],
+    outputs: [
+      { name: "id", type: "uint256" },
+      { name: "planId", type: "uint256" },
+      { name: "subscriber", type: "address" },
+      { name: "startedAt", type: "uint256" },
+      { name: "nextChargeAt", type: "uint256" },
+      { name: "totalPaid", type: "uint256" },
+      { name: "active", type: "bool" },
+    ],
+  },
+
+
 ] as const;
