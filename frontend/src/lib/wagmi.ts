@@ -24,7 +24,7 @@ export const arcTestnet = defineChain({
   testnet: true,
 });
 
-export const SUBSCRIPTION_MANAGER = "0xd8bD4089f428dbBE3f3719fE118F026Bba5C84a4" as const;
+export const SUBSCRIPTION_MANAGER = "0xBB5004Bf24B5E21262F1610F7748bB967f583EB0" as const;
 export const USDC_ADDRESS = "0x3600000000000000000000000000000000000000" as const;
 export const USDC_DECIMALS = 6;
 

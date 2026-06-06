@@ -163,6 +163,32 @@ export const SUBSCRIPTION_MANAGER_ABI = [
       { name: "subId", type: "uint256", indexed: true },
     ],
   },
+
+{
+    name: "setProfile",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "name", type: "string" },
+      { name: "description", type: "string" },
+      { name: "avatarUrl", type: "string" },
+    ],
+    outputs: [],
+  },
+  {
+    name: "getProfile",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "merchant", type: "address" }],
+    outputs: [
+      { name: "name", type: "string" },
+      { name: "description", type: "string" },
+      { name: "avatarUrl", type: "string" },
+    ],
+  },
+
+
+
 ] as const;
 
 export const USDC_ABI = [

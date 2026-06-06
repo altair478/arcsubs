@@ -31,16 +31,10 @@ export function ConnectButton() {
         onClick={() => connect({ connector: injected() })}
         disabled={isPending}
         style={{
-          background: "#3b5bdb",
-          color: "#fff",
-          border: "none",
-          borderRadius: 8,
-          padding: "9px 20px",
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: "pointer",
-          opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.15s",
+          background: "#3b5bdb", color: "#fff",
+          border: "none", borderRadius: 8,
+          padding: "9px 20px", fontSize: 13, fontWeight: 500,
+          cursor: "pointer", opacity: isPending ? 0.6 : 1,
         }}
       >
         {isPending ? "Connecting..." : "Connect Wallet"}
@@ -53,22 +47,12 @@ export function ConnectButton() {
   if (isWrongNetwork) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{
-          fontSize: 12, color: "#ff6b6b",
-          background: "#2a1010",
-          border: "0.5px solid #5a2020",
-          borderRadius: 20, padding: "5px 12px",
-        }}>
+        <span style={{ fontSize: 12, color: "#ff6b6b", background: "#2a1010", border: "0.5px solid #5a2020", borderRadius: 20, padding: "5px 12px" }}>
           Wrong network
         </span>
         <button
           onClick={() => disconnect()}
-          style={{
-            background: "#1a1a2e", color: "#7070a0",
-            border: "0.5px solid #2a2a45",
-            borderRadius: 8, padding: "7px 14px",
-            fontSize: 12, cursor: "pointer",
-          }}
+          style={{ background: "#1a1a2e", color: "#7070a0", border: "0.5px solid #2a2a45", borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}
         >
           Disconnect
         </button>
@@ -78,35 +62,20 @@ export function ConnectButton() {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{
-        background: "#0f0f1e",
-        border: "0.5px solid #1a1a30",
-        borderRadius: 20,
-        padding: "6px 14px",
-        display: "flex", alignItems: "center", gap: 8,
-      }}>
-        <div style={{
-          width: 7, height: 7,
-          background: "#40c057",
-          borderRadius: "50%",
-        }} />
+      <div style={{ background: "#0f0f1e", border: "0.5px solid #1a1a30", borderRadius: 20, padding: "6px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 7, height: 7, background: "#40c057", borderRadius: "50%" }} />
         <span style={{ fontSize: 12, color: "#a0a0c0" }}>
           {address?.slice(0, 6)}...{address?.slice(-4)}
         </span>
         <span style={{ fontSize: 12, fontWeight: 500, color: "#40c057" }}>
-          {balance !== undefined
-            ? parseFloat(formatUnits(balance, 6)).toFixed(2) + " USDC"
-            : "..."}
+          {balance !== undefined ? parseFloat(formatUnits(balance, 6)).toFixed(2) + " USDC" : "..."}
         </span>
       </div>
+      
+        <a href={`/merchant/${address}`} style={{ fontSize: 12, color: "#7eb3f5", background: "#1a2550", border: "0.5px solid #3b5bdb", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontWeight: 500 }}>My Store</a>
       <button
         onClick={() => disconnect()}
-        style={{
-          background: "#1a1a2e", color: "#7070a0",
-          border: "0.5px solid #2a2a45",
-          borderRadius: 8, padding: "7px 14px",
-          fontSize: 12, cursor: "pointer",
-        }}
+        style={{ background: "#1a1a2e", color: "#7070a0", border: "0.5px solid #2a2a45", borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}
       >
         Disconnect
       </button>
