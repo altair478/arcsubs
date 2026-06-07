@@ -26,6 +26,8 @@ type Plan = {
   active: boolean;
 };
 
+// ─── Subscribe Flow ───────────────────────────────────────────────────────────
+
 function SubscribeFlow({ plan }: { plan: Plan }) {
   const { address } = useAccount();
   const [mounted, setMounted] = useState(false);
@@ -80,6 +82,8 @@ function SubscribeFlow({ plan }: { plan: Plan }) {
   );
 }
 
+// ─── Plan Card ────────────────────────────────────────────────────────────────
+
 function PlanCard({ plan }: { plan: Plan }) {
   return (
     <div style={{ background: "#0f0f1e", border: "0.5px solid #2a3a70", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -96,6 +100,8 @@ function PlanCard({ plan }: { plan: Plan }) {
   );
 }
 
+// ─── Edit Profile Form ────────────────────────────────────────────────────────
+
 function EditProfileForm({ merchantAddress }: { merchantAddress: string }) {
   const { address } = useAccount();
   const [name, setName] = useState("");
@@ -107,9 +113,7 @@ function EditProfileForm({ merchantAddress }: { merchantAddress: string }) {
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-  useEffect(() => {
-    if (isSuccess) setOpen(false);
-  }, [isSuccess]);
+  useEffect(() => { if (isSuccess) setOpen(false); }, [isSuccess]);
 
   if (!isOwner) return null;
 
@@ -126,41 +130,18 @@ function EditProfileForm({ merchantAddress }: { merchantAddress: string }) {
         <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
           <div>
             <div style={{ fontSize: 11, color: "#505070", marginBottom: 4 }}>Display name</div>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Señales VIP by Juan"
-              style={{ width: "100%", background: "#080810", border: "0.5px solid #1a1a30", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#e8e8f0", outline: "none" }}
-            />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Juan · Señales VIP" style={{ width: "100%", background: "#080810", border: "0.5px solid #1a1a30", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#e8e8f0", outline: "none" }} />
           </div>
           <div>
             <div style={{ fontSize: 11, color: "#505070", marginBottom: 4 }}>Description</div>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tell subscribers what you offer..."
-              rows={3}
-              style={{ width: "100%", background: "#080810", border: "0.5px solid #1a1a30", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#e8e8f0", outline: "none", resize: "none" }}
-            />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell subscribers what you offer..." rows={3} style={{ width: "100%", background: "#080810", border: "0.5px solid #1a1a30", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#e8e8f0", outline: "none", resize: "none" }} />
           </div>
           <div>
             <div style={{ fontSize: 11, color: "#505070", marginBottom: 4 }}>Avatar URL (optional)</div>
-            <input
-              type="text"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://..."
-              style={{ width: "100%", background: "#080810", border: "0.5px solid #1a1a30", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#e8e8f0", outline: "none" }}
-            />
+            <input type="text" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." style={{ width: "100%", background: "#080810", border: "0.5px solid #1a1a30", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#e8e8f0", outline: "none" }} />
           </div>
           <button
-            onClick={() => writeContract({
-              address: SUBSCRIPTION_MANAGER,
-              abi: SUBSCRIPTION_MANAGER_ABI,
-              functionName: "setProfile",
-              args: [name, description, avatarUrl],
-            })}
+            onClick={() => writeContract({ address: SUBSCRIPTION_MANAGER, abi: SUBSCRIPTION_MANAGER_ABI, functionName: "setProfile", args: [name, description, avatarUrl] })}
             disabled={!name || isPending || isConfirming}
             style={{ padding: "9px", background: "#3b5bdb", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: !name || isPending || isConfirming ? "not-allowed" : "pointer", opacity: !name || isPending || isConfirming ? 0.6 : 1 }}
           >
@@ -171,6 +152,65 @@ function EditProfileForm({ merchantAddress }: { merchantAddress: string }) {
     </div>
   );
 }
+
+// ─── Share Button ─────────────────────────────────────────────────────────────
+
+function ShareButton({ address }: { address: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      style={{
+        fontSize: 11, fontWeight: 500,
+        color: copied ? "#40c057" : "#7070a0",
+        background: copied ? "#0d2b1a" : "#1a1a2e",
+        border: copied ? "0.5px solid #40c057" : "0.5px solid #2a2a45",
+        borderRadius: 6, padding: "4px 12px",
+        cursor: "pointer", transition: "all 0.15s",
+      }}
+    >
+      {copied ? "✓ Link copied!" : "Share store ↗"}
+    </button>
+  );
+}
+
+// ─── Not Found ────────────────────────────────────────────────────────────────
+
+function NotFound({ address }: { address: string }) {
+  return (
+    <div style={{ textAlign: "center", padding: "60px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+      <svg width="48" height="48" viewBox="0 0 32 32" fill="none">
+        <polygon points="16,1 30,8.5 30,23.5 16,31 2,23.5 2,8.5" fill="#1a1a2e" stroke="#2a2a45" strokeWidth="0.5"/>
+        <polygon points="16,8 23,12 23,20 16,24 9,20 9,12" fill="#080810"/>
+        <circle cx="16" cy="16" r="3.5" fill="#303050"/>
+      </svg>
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 500, color: "#e8e8f0", marginBottom: 8 }}>
+          This merchant isn't on ArcSubs yet.
+        </div>
+        <div style={{ fontSize: 13, color: "#505070", marginBottom: 4 }}>
+          {address.slice(0, 6)}...{address.slice(-4)} hasn't created any plans or set up a profile.
+        </div>
+        <div style={{ fontSize: 13, color: "#505070" }}>
+          Are you this merchant?
+        </div>
+      </div>
+      
+        <a href="/" style={{ fontSize: 13, fontWeight: 500, color: "#7eb3f5", background: "#1a2550", border: "0.5px solid #3b5bdb", borderRadius: 8, padding: "9px 20px", textDecoration: "none" }}>Set up your store →</a>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MerchantProfile() {
   const params = useParams();
@@ -201,6 +241,8 @@ export default function MerchantProfile() {
   const profileDesc = profile ? (profile as [string, string, string])[1] : "";
   const profileAvatar = profile ? (profile as [string, string, string])[2] : "";
 
+  const isNotFound = mounted && !isLoading && activePlans.length === 0 && !profileName && !profileDesc;
+
   return (
     <main style={{ minHeight: "100vh", background: "#080810" }}>
       <nav style={{ background: "#0c0c18", borderBottom: "0.5px solid #1a1a30", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
@@ -217,49 +259,58 @@ export default function MerchantProfile() {
       </nav>
 
       <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 24px" }}>
-        {/* Merchant header */}
-        <div style={{ background: "#0f0f1e", border: "0.5px solid #1a1a30", borderRadius: 12, padding: "24px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {profileAvatar ? (
-              <img src={profileAvatar} alt="avatar" style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "0.5px solid #3b5bdb" }} />
+        {!mounted || isLoading ? (
+          <div style={{ textAlign: "center", color: "#505070", fontSize: 13, padding: "32px" }}>Loading...</div>
+        ) : isNotFound ? (
+          <NotFound address={merchantAddress} />
+        ) : (
+          <>
+            {/* Merchant header */}
+            <div style={{ background: "#0f0f1e", border: "0.5px solid #1a1a30", borderRadius: 12, padding: "24px", marginBottom: 28, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                {profileAvatar ? (
+                  <img src={profileAvatar} alt="avatar" style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "cover", border: "0.5px solid #3b5bdb" }} />
+                ) : (
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#1a2550", border: "0.5px solid #3b5bdb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#7eb3f5", fontWeight: 500 }}>
+                    {merchantAddress ? merchantAddress.slice(2, 4).toUpperCase() : "??"}
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 500, color: "#e8e8f0", marginBottom: 2 }}>
+                    {profileName || (merchantAddress ? merchantAddress.slice(0, 6) + "..." + merchantAddress.slice(-4) : "")}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#505070" }}>Merchant on ArcSubs</div>
+                  <div style={{ fontSize: 12, color: "#3b5bdb", marginTop: 2 }}>
+                    {activePlans.length} active {activePlans.length === 1 ? "plan" : "plans"}
+                  </div>
+                </div>
+              </div>
+
+              {profileDesc && (
+                <div style={{ fontSize: 13, color: "#a0a0c0", lineHeight: 1.6, borderTop: "0.5px solid #1a1a30", paddingTop: 12 }}>
+                  {profileDesc}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {mounted && <EditProfileForm merchantAddress={merchantAddress} />}
+                <ShareButton address={merchantAddress} />
+              </div>
+            </div>
+
+            {/* Plans */}
+            {activePlans.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#505070", fontSize: 13, padding: "32px", background: "#0f0f1e", borderRadius: 12, border: "0.5px solid #1a1a30" }}>
+                This merchant has no active plans.
+              </div>
             ) : (
-              <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#1a2550", border: "0.5px solid #3b5bdb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#7eb3f5", fontWeight: 500 }}>
-                {merchantAddress ? merchantAddress.slice(2, 4).toUpperCase() : "??"}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {activePlans.map((plan: Plan) => (
+                  <PlanCard key={plan.id.toString()} plan={plan} />
+                ))}
               </div>
             )}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 16, fontWeight: 500, color: "#e8e8f0", marginBottom: 2 }}>
-                {profileName || (merchantAddress ? merchantAddress.slice(0, 6) + "..." + merchantAddress.slice(-4) : "")}
-              </div>
-              <div style={{ fontSize: 12, color: "#505070" }}>Merchant on ArcSubs</div>
-              <div style={{ fontSize: 12, color: "#3b5bdb", marginTop: 2 }}>
-                {activePlans.length} active {activePlans.length === 1 ? "plan" : "plans"}
-              </div>
-            </div>
-          </div>
-
-          {profileDesc && (
-            <div style={{ fontSize: 13, color: "#a0a0c0", lineHeight: 1.6, borderTop: "0.5px solid #1a1a30", paddingTop: 12 }}>
-              {profileDesc}
-            </div>
-          )}
-
-          {mounted && <EditProfileForm merchantAddress={merchantAddress} />}
-        </div>
-
-        {/* Plans */}
-        {!mounted || isLoading ? (
-          <div style={{ textAlign: "center", color: "#505070", fontSize: 13, padding: "32px" }}>Loading plans...</div>
-        ) : activePlans.length === 0 ? (
-          <div style={{ textAlign: "center", color: "#505070", fontSize: 13, padding: "32px", background: "#0f0f1e", borderRadius: 12, border: "0.5px solid #1a1a30" }}>
-            This merchant has no active plans.
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {activePlans.map((plan: Plan) => (
-              <PlanCard key={plan.id.toString()} plan={plan} />
-            ))}
-          </div>
+          </>
         )}
       </div>
     </main>
