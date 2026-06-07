@@ -71,7 +71,7 @@ export default function Home() {
             </div>
 
             <h1 style={{
-              fontSize: 42, fontWeight: 500, color: "#e8e8f0",
+              fontSize: 52, fontWeight: 600, color: "#e8e8f0",
               lineHeight: 1.2, marginBottom: 16,
             }}>
               Recurring USDC payments,
@@ -174,7 +174,7 @@ export default function Home() {
         marginTop: 40,
       }}>
         <p style={{ fontSize: 11, color: "#303050" }}>
-  ArcSubs · Open protocol on Arc Testnet · Contract 0xBB50...83EB0
+  ArcSubs · Open protocol on Arc Testnet · Contract 0xBB50...83EB0 · Built by @mauriciochaju24 (altair478)
 </p>
       </footer>
     </main>
