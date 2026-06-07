@@ -174,7 +174,7 @@ export default function Home() {
         marginTop: 40,
       }}>
         <p style={{ fontSize: 11, color: "#303050" }}>
-  ArcSubs · Open protocol on Arc Testnet · Contract 0xd8bD...c84a4
+  ArcSubs · Open protocol on Arc Testnet · Contract 0xBB50...83EB0
 </p>
       </footer>
     </main>
