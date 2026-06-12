@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+  // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 interface IERC20 {
@@ -11,6 +11,7 @@ contract SubscriptionManager {
 
     // ─── Constants ───────────────────────────────────────────────────────────
     address public constant USDC = 0x3600000000000000000000000000000000000000;
+    uint256 public constant GRACE_PERIOD = 7 days;
 
     // ─── Types ───────────────────────────────────────────────────────────────
     struct Plan {
@@ -30,6 +31,9 @@ contract SubscriptionManager {
         uint256 nextChargeAt;
         uint256 totalPaid;
         bool    active;
+        bool    pastDue;
+        bool    suspended;
+        uint256 graceStartedAt;
     }
 
     // ─── Storage ─────────────────────────────────────────────────────────────
@@ -44,6 +48,14 @@ contract SubscriptionManager {
     // subscriber → list of subscription IDs
     mapping(address => uint256[]) public subscriberSubs;
 
+// merchant → profile
+    struct MerchantProfile {
+        string name;
+        string description;
+        string avatarUrl;
+    }
+    mapping(address => MerchantProfile) public merchantProfiles;
+
     // ─── Events ──────────────────────────────────────────────────────────────
     event PlanCreated(uint256 indexed planId, address indexed merchant, string name, uint256 price, uint256 interval);
     event PlanPaused(uint256 indexed planId);
@@ -51,6 +63,9 @@ contract SubscriptionManager {
     event Subscribed(uint256 indexed subId, uint256 indexed planId, address indexed subscriber);
     event Charged(uint256 indexed subId, uint256 amount);
     event Cancelled(uint256 indexed subId);
+    event PastDueMarked(uint256 indexed subId);
+    event Suspended(uint256 indexed subId);
+    event Reactivated(uint256 indexed subId);
 
     // ─── Errors ──────────────────────────────────────────────────────────────
     error PlanNotFound();
@@ -64,6 +79,36 @@ contract SubscriptionManager {
     error NotMerchant();
     error InvalidPrice();
     error InvalidInterval();
+
+
+// ─── Merchant Profile ─────────────────────────────────────────────────────
+
+    event ProfileUpdated(address indexed merchant, string name);
+
+    function setProfile(
+        string calldata name,
+        string calldata description,
+        string calldata avatarUrl
+    ) external {
+        merchantProfiles[msg.sender] = MerchantProfile({
+            name: name,
+            description: description,
+            avatarUrl: avatarUrl
+        });
+        emit ProfileUpdated(msg.sender, name);
+    }
+
+    function getProfile(address merchant) external view returns (
+        string memory name,
+        string memory description,
+        string memory avatarUrl
+    ) {
+        MerchantProfile storage profile = merchantProfiles[merchant];
+        return (profile.name, profile.description, profile.avatarUrl);
+    }
+
+
+
 
     // ─── Plan Management ─────────────────────────────────────────────────────
 
@@ -119,13 +164,16 @@ contract SubscriptionManager {
         subId = nextSubId++;
 
         subscriptions[subId] = Subscription({
-            id:            subId,
-            planId:        planId,
-            subscriber:    msg.sender,
-            startedAt:     block.timestamp,
-            nextChargeAt:  block.timestamp,
-            totalPaid:     0,
-            active:        true
+            id:             subId,
+            planId:         planId,
+            subscriber:     msg.sender,
+            startedAt:      block.timestamp,
+            nextChargeAt:   block.timestamp,
+            totalPaid:      0,
+            active:         true,
+            pastDue:        false,
+            suspended:      false,
+            graceStartedAt: 0
         });
 
         subscriberSubs[msg.sender].push(subId);
@@ -206,8 +254,32 @@ contract SubscriptionManager {
         Plan storage plan = plans[sub.planId];
         IERC20 usdc = IERC20(USDC);
 
-        if (usdc.allowance(sub.subscriber, address(this)) < plan.price) revert InsufficientAllowance();
-        if (usdc.balanceOf(sub.subscriber) < plan.price) revert InsufficientBalance();
+        bool hasFunds = usdc.allowance(sub.subscriber, address(this)) >= plan.price
+                     && usdc.balanceOf(sub.subscriber) >= plan.price;
+
+        if (!hasFunds) {
+            if (!sub.pastDue) {
+                // First missed charge: enter grace period, access is preserved.
+                sub.pastDue = true;
+                sub.graceStartedAt = block.timestamp;
+                emit PastDueMarked(subId);
+            } else if (block.timestamp >= sub.graceStartedAt + GRACE_PERIOD) {
+                // Grace period expired without a successful charge: suspend.
+                sub.active = false;
+                sub.suspended = true;
+                emit Suspended(subId);
+            }
+            // If already pastDue and still within the grace period: do nothing,
+            // keep waiting for the next attempt.
+            return;
+        }
+
+        // Funds are available. If the subscription was pastDue, restore it.
+        if (sub.pastDue) {
+            sub.pastDue = false;
+            sub.graceStartedAt = 0;
+            emit Reactivated(subId);
+        }
 
         sub.nextChargeAt = block.timestamp + plan.interval;
         sub.totalPaid   += plan.price;

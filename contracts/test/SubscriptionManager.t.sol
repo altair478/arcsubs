@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+    // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -11,6 +11,10 @@ contract MockUSDC {
 
     function mint(address to, uint256 amount) external {
         balanceOf[to] += amount;
+    }
+
+    function burn(address from, uint256 amount) external {
+        balanceOf[from] -= amount;
     }
 
     function approve(address spender, uint256 amount) external returns (bool) {
@@ -142,7 +146,7 @@ contract SubscriptionManagerTest is Test {
         assertEq(usdc.balanceOf(subscriber), 90e6);
         assertEq(usdc.balanceOf(merchant), 10e6);
 
-        (,,,,,uint256 totalPaid, bool active) = manager.subscriptions(subId);
+        (,,,,,uint256 totalPaid, bool active,,,) = manager.subscriptions(subId);
         assertEq(totalPaid, PRICE);
         assertTrue(active);
     }
@@ -178,7 +182,7 @@ contract SubscriptionManagerTest is Test {
         vm.prank(subscriber);
         manager.cancel(subId);
 
-        (,,,,,,bool active) = manager.subscriptions(subId);
+        (,,,,,,bool active,,,) = manager.subscriptions(subId);
         assertFalse(active);
     }
 
@@ -303,5 +307,168 @@ contract SubscriptionManagerTest is Test {
         (,, , uint256 p, uint256 i,) = manager.plans(planId);
         assertEq(p, price);
         assertEq(i, interval);
+    }
+
+    // ─── Low-Balance Retry / pastDue / suspended Tests ─────────────────────────
+
+    function test_Charge_MarksPastDue_WhenInsufficientBalance() public {
+        (, uint256 subId) = _createPlanAndSubscribe();
+
+        vm.warp(block.timestamp + INTERVAL);
+
+        // Subscriber se queda sin saldo: ya no le alcanza para el cobro
+        usdc.burn(subscriber, 90e6); // se queda con 0
+
+        vm.prank(keeper);
+        manager.charge(subId); // no debe revertir
+
+        (
+            ,,,, uint256 nextChargeAt, uint256 totalPaid,
+            bool active, bool pastDue, bool suspended, uint256 graceStartedAt
+        ) = manager.subscriptions(subId);
+
+        assertTrue(active);          // mantiene acceso
+        assertTrue(pastDue);         // marcado como pastDue
+        assertFalse(suspended);
+        assertEq(graceStartedAt, block.timestamp);
+        assertEq(totalPaid, PRICE);  // no se cobró nada nuevo
+        assertEq(nextChargeAt, block.timestamp); // no avanzó nextChargeAt
+    }
+
+    function test_Charge_StaysPastDue_WithinGracePeriod() public {
+        (, uint256 subId) = _createPlanAndSubscribe();
+
+        vm.warp(block.timestamp + INTERVAL);
+
+        usdc.burn(subscriber, 90e6);
+
+        vm.prank(keeper);
+        manager.charge(subId); // marca pastDue
+
+        // Avanzamos 3 días (dentro de los 7 de gracia) y reintenta
+        vm.warp(block.timestamp + 3 days);
+
+        vm.prank(keeper);
+        manager.charge(subId); // sigue sin fondos, sigue dentro de gracia
+
+        (,,,,,, bool active, bool pastDue, bool suspended,) = manager.subscriptions(subId);
+
+        assertTrue(active);
+        assertTrue(pastDue);
+        assertFalse(suspended); // todavía no se cumplieron los 7 días
+    }
+
+    function test_Charge_Suspends_AfterGracePeriodExpires() public {
+        (, uint256 subId) = _createPlanAndSubscribe();
+
+        vm.warp(block.timestamp + INTERVAL);
+
+        usdc.burn(subscriber, 90e6);
+
+        vm.prank(keeper);
+        manager.charge(subId); // marca pastDue, graceStartedAt = T
+
+        // Avanzamos más de 7 días desde que empezó la gracia
+        vm.warp(block.timestamp + manager.GRACE_PERIOD() + 1);
+
+        vm.prank(keeper);
+        manager.charge(subId); // gracia vencida, sin fondos -> suspende
+
+        (,,,,,, bool active, bool pastDue, bool suspended,) = manager.subscriptions(subId);
+
+        assertFalse(active);   // se corta el acceso
+        assertTrue(pastDue);
+        assertTrue(suspended);
+    }
+
+    function test_Charge_Reactivates_WhenFundsReturnDuringGrace() public {
+        (, uint256 subId) = _createPlanAndSubscribe();
+
+        vm.warp(block.timestamp + INTERVAL);
+
+        // Se queda sin fondos
+        usdc.burn(subscriber, 90e6);
+
+        vm.prank(keeper);
+        manager.charge(subId); // marca pastDue
+
+        // Avanzamos 2 días, todavía dentro de gracia
+        vm.warp(block.timestamp + 2 days);
+
+        // El subscriber recupera fondos suficientes
+        usdc.mint(subscriber, 50e6);
+
+        vm.prank(keeper);
+        manager.charge(subId); // ahora sí cobra y reactiva
+
+        (
+            ,,,, uint256 nextChargeAt, uint256 totalPaid,
+            bool active, bool pastDue, bool suspended, uint256 graceStartedAt
+        ) = manager.subscriptions(subId);
+
+        assertTrue(active);
+        assertFalse(pastDue);
+        assertFalse(suspended);
+        assertEq(graceStartedAt, 0);
+        assertEq(totalPaid, PRICE * 2); // cobro inicial + este cobro
+        assertEq(nextChargeAt, block.timestamp + INTERVAL);
+    }
+
+    function test_RevertIf_Charge_Suspended() public {
+        (, uint256 subId) = _createPlanAndSubscribe();
+
+        vm.warp(block.timestamp + INTERVAL);
+
+        usdc.burn(subscriber, 90e6);
+
+        vm.prank(keeper);
+        manager.charge(subId); // pastDue
+
+        vm.warp(block.timestamp + manager.GRACE_PERIOD() + 1);
+
+        vm.prank(keeper);
+        manager.charge(subId); // suspende
+
+        // Un intento posterior sobre una sub suspendida revierte como SubNotActive
+        vm.warp(block.timestamp + 1 days);
+
+        vm.prank(keeper);
+        vm.expectRevert(SubscriptionManager.SubNotActive.selector);
+        manager.charge(subId);
+    }
+
+    function test_GetChargeable_IncludesPastDueSubs() public {
+        (, uint256 subId) = _createPlanAndSubscribe();
+
+        vm.warp(block.timestamp + INTERVAL);
+
+        usdc.burn(subscriber, 90e6);
+
+        vm.prank(keeper);
+        manager.charge(subId); // pastDue, nextChargeAt no avanza
+
+        // Sigue apareciendo como chargeable para que el keeper reintente
+        uint256[] memory chargeable = manager.getChargeable(0, manager.nextSubId());
+        assertEq(chargeable.length, 1);
+        assertEq(chargeable[0], subId);
+    }
+
+    function test_GetChargeable_ExcludesSuspendedSubs() public {
+        (, uint256 subId) = _createPlanAndSubscribe();
+
+        vm.warp(block.timestamp + INTERVAL);
+
+        usdc.burn(subscriber, 90e6);
+
+        vm.prank(keeper);
+        manager.charge(subId); // pastDue
+
+        vm.warp(block.timestamp + manager.GRACE_PERIOD() + 1);
+
+        vm.prank(keeper);
+        manager.charge(subId); // suspende (active = false)
+
+        uint256[] memory chargeable = manager.getChargeable(0, manager.nextSubId());
+        assertEq(chargeable.length, 0);
     }
 }

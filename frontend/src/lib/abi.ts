@@ -1,3 +1,4 @@
+
 export const SUBSCRIPTION_MANAGER_ABI = [
   // Plan Management
   {
@@ -85,6 +86,9 @@ export const SUBSCRIPTION_MANAGER_ABI = [
           { name: "nextChargeAt", type: "uint256" },
           { name: "totalPaid", type: "uint256" },
           { name: "active", type: "bool" },
+          { name: "pastDue", type: "bool" },
+          { name: "suspended", type: "bool" },
+          { name: "graceStartedAt", type: "uint256" },
         ],
       },
     ],
@@ -127,6 +131,31 @@ export const SUBSCRIPTION_MANAGER_ABI = [
       { name: "active", type: "bool" },
     ],
   },
+  {
+    name: "subscriptions",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "subId", type: "uint256" }],
+    outputs: [
+      { name: "id", type: "uint256" },
+      { name: "planId", type: "uint256" },
+      { name: "subscriber", type: "address" },
+      { name: "startedAt", type: "uint256" },
+      { name: "nextChargeAt", type: "uint256" },
+      { name: "totalPaid", type: "uint256" },
+      { name: "active", type: "bool" },
+      { name: "pastDue", type: "bool" },
+      { name: "suspended", type: "bool" },
+      { name: "graceStartedAt", type: "uint256" },
+    ],
+  },
+  {
+    name: "GRACE_PERIOD",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
   // Events
   {
     name: "PlanCreated",
@@ -158,6 +187,27 @@ export const SUBSCRIPTION_MANAGER_ABI = [
   },
   {
     name: "Cancelled",
+    type: "event",
+    inputs: [
+      { name: "subId", type: "uint256", indexed: true },
+    ],
+  },
+  {
+    name: "PastDueMarked",
+    type: "event",
+    inputs: [
+      { name: "subId", type: "uint256", indexed: true },
+    ],
+  },
+  {
+    name: "Suspended",
+    type: "event",
+    inputs: [
+      { name: "subId", type: "uint256", indexed: true },
+    ],
+  },
+  {
+    name: "Reactivated",
     type: "event",
     inputs: [
       { name: "subId", type: "uint256", indexed: true },
@@ -226,22 +276,5 @@ export const USDC_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "uint8" }],
   },
-
-{
-    name: "subscriptions",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "subId", type: "uint256" }],
-    outputs: [
-      { name: "id", type: "uint256" },
-      { name: "planId", type: "uint256" },
-      { name: "subscriber", type: "address" },
-      { name: "startedAt", type: "uint256" },
-      { name: "nextChargeAt", type: "uint256" },
-      { name: "totalPaid", type: "uint256" },
-      { name: "active", type: "bool" },
-    ],
-  },
-
 
 ] as const;
